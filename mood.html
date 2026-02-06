@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Plushy Octopus Ecosystem</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+    font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+    background: linear-gradient(160deg,#1e293b,#0f172a);
+    color:white;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    overflow:hidden;
+}
+h1{margin-top:20px;font-size:28px;text-align:center;opacity:0.9;}
+#subtitle{opacity:0.5;margin-bottom:10px;text-align:center;}
+#octopus-container{position:relative;width:100%;height:500px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;}
+.octo{width:120px;height:120px;border-radius:50%;position:absolute;cursor:pointer;transition:all 0.6s;}
+.octo::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), rgba(0,0,0,0.2));}
+.flip{transform:rotateY(180deg);}
+.face{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:40px;user-select:none;transition:all 0.3s;}
+.eyes,.mouth,.eyebrows{position:absolute;cursor:grab;transition:all 0.2s;}
+.eyes{font-size:18px;}
+.mouth{font-size:18px;top:35px;}
+.eyebrows{font-size:16px;top:5px;}
+.tentacle{position:absolute;width:15px;height:40px;background:rgba(255,255,255,0.1);border-radius:50% 50% 0 0;transform-origin:top center;transition:all 0.2s;}
+#buttons,#editor{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center;}
+#buttons button,#editor input,#editor select{padding:8px 12px;border:none;border-radius:10px;font-size:14px;background: rgba(255,255,255,0.1);color:white;}
+#buttons button:hover,#editor input:hover,#editor select:hover{background: rgba(255,255,255,0.2);}
+#history{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:90%;}
+#history span{font-size:20px;opacity:0.6;}
+.fullscreen{position:fixed;inset:0;background:#0f172a;display:flex;justify-content:center;align-items:center;font-size:200px;z-index:999;}
+.bounce{animation:bounce 0.4s ease;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.blush::after{content:"";position:absolute;bottom:15px;width:10px;height:5px;background:pink;border-radius:50%;left:10px;right:10px;margin:auto;}
+</style>
+</head>
+<body>
+
+<h1>Ultimate Plushy Octopus Ecosystem</h1>
+<div id="subtitle">Tap to flip + jiggle, drag facial features, add moods, hear sounds, watch them interact!</div>
+
+<div id="octopus-container"></div>
+
+<div id="buttons">
+    <button onclick="addOctopus()">➕ Add Octopus</button>
+    <button onclick="showFullscreen()">Show Mood</button>
+    <button onclick="switchBack()">Old UI</button>
+</div>
+
+<div id="editor">
+    <input type="text" id="customEyes" placeholder="Eyes e.g. 👀 👀">
+    <input type="text" id="customEyebrows" placeholder="Eyebrows e.g. 〰️〰️">
+    <input type="text" id="customMouth" placeholder="Mouth e.g. 🙂">
+    <input type="color" id="customColor" value="#22c55e">
+    <button onclick="addCustomMood()">Add Custom Mood</button>
+</div>
+
+<div id="history"></div>
+
+<audio id="sound-happy" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+<audio id="sound-sad" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+<audio id="sound-angry" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
+
+<script>
+// Built-in moods
+let moods=JSON.parse(localStorage.getItem("customMoods"))||[
+    {eyes:"👀 👀", eyebrows:"〰️〰️", mouth:"😊", color:"#22c55e", tentacle:[-10,-5,0,5,10], sound:"sound-happy"},
+    {eyes:"😟 😟", eyebrows:"〰️〰️", mouth:"😔", color:"#3b82f6", tentacle:[-15,-10,0,10,15], sound:"sound-sad"},
+    {eyes:"😠 😠", eyebrows:"〰️〰️", mouth:"😡", color:"#ef4444", tentacle:[-20,-10,0,10,20], sound:"sound-angry"}
+];
+
+let octos=[];
+
+// Add octopus
+function addOctopus(){
+    const container=document.getElementById("octopus-container");
+    const octo=document.createElement("div"); octo.className="octo"; 
+    octo.style.background=moods[0].color;
+    octo.dataset.index=0;
+    octo.dataset.x=Math.random()*window.innerWidth*0.8;
+    octo.dataset.y=Math.random()*400;
+    octo.style.left=octo.dataset.x+"px"; octo.style.top=octo.dataset.y+"px";
+    
+    const face=document.createElement("div"); face.className="face";
+    const eyes=document.createElement("div"); eyes.className="eyes"; eyes.textContent=moods[0].eyes;
+    const eyebrows=document.createElement("div"); eyebrows.className="eyebrows"; eyebrows.textContent=moods[0].eyebrows;
+    const mouth=document.createElement("div"); mouth.className="mouth"; mouth.textContent=moods[0].mouth;
+    face.appendChild(eyebrows); face.appendChild(eyes); face.appendChild(mouth);
+    octo.appendChild(face);
+
+    for(let i=0;i<5;i++){const t=document.createElement("div"); t.className="tentacle"; t.style.left=`${20+20*i}px`; octo.appendChild(t);}
+    
+    container.appendChild(octo);
+    octos.push({el:octo,eyes,eyebrows,mouth,tentacles:[...octo.querySelectorAll(".tentacle")]});
+    
+    makeDraggable(eyes); makeDraggable(eyebrows); makeDraggable(mouth);
+    
+    octo.onclick=()=>flipOctopus(octos[octos.length-1]);
+}
+
+// Flip + bounce + sound + reaction
+function flipOctopus(octoObj){
+    octoObj.el.classList.add("flip","bounce");
+    setTimeout(()=>{
+        let idx=(parseInt(octoObj.el.dataset.index)+1)%moods.length;
+        setMoodOctopus(octoObj,idx);
+        octoObj.el.classList.remove("flip","bounce");
+    },300);
+}
+
+// Set mood for octopus
+function setMoodOctopus(octoObj,index){
+    const mood=moods[index];
+    octoObj.el.dataset.index=index;
+    octoObj.el.style.background=mood.color;
+    octoObj.eyes.textContent=mood.eyes;
+    octoObj.mouth.textContent=mood.mouth;
+    octoObj.eyebrows.textContent=mood.eyebrows;
+    mood.tentacle.forEach((deg,i)=>octoObj.tentacles[i].style.transform=`rotate(${deg}deg)`);
+    playSound(mood.sound);
+    saveHistory(mood);
+}
+
+// Play sound
+function playSound(id){const s=document.getElementById(id); if(s){s.currentTime=0;s.play();}}
+
+// Custom moods
+function addCustomMood(){
+    const eyes=document.getElementById("customEyes").value||"👀 👀";
+    const eyebrows=document.getElementById("customEyebrows").value||"〰️〰️";
+    const mouth=document.getElementById("customMouth").value||"🙂";
+    const color=document.getElementById("customColor").value||"#22c55e";
+    const tentacle=[-10,-5,0,5,10];
+    moods.push({eyes,eyebrows,mouth,color,tentacle,sound:"sound-happy"});
+    localStorage.setItem("customMoods",JSON.stringify(moods));
+    alert("Custom mood added!");
+}
+
+// Draggable
+function makeDraggable(el){
+    let isDrag=false, startX, startY;
+    el.addEventListener("pointerdown",e=>{isDrag=true; startX=e.clientX; startY=e.clientY; el.setPointerCapture(e.pointerId);});
+    el.addEventListener("pointermove",e=>{if(!isDrag)return; const dx=e.clientX-startX, dy=e.clientY-startY; el.style.transform=`translate(${dx}px,${dy}px)`;});
+    el.addEventListener("pointerup",e=>{isDrag=false; el.releasePointerCapture(e.pointerId);});
+}
+
+// Fullscreen
+function showFullscreen(){
+    if(octos.length===0)return;
+    const fs=document.createElement("div"); fs.className="fullscreen";
+    fs.textContent=octos[octos.length-1].mouth.textContent;
+    fs.onclick=()=>fs.remove();
+    document.body.appendChild(fs);
+}
+
+// Old UI
+function switchBack(){window.location.href="mood.html";}
+
+// Tentacle breathing + jiggle + autonomous movement + interactions
+setInterval(()=>{
+    octos.forEach(o=>{
+        let idx=parseInt(o.el.dataset.index);
+        let mood=moods[idx];
+        o.tentacles.forEach((t,i)=>{t.style.transform=`rotate(${mood.tentacle[i]+Math.sin(Date.now()/500+i)*5}deg)`;});
+
+        // random floating
+        let x=parseFloat(o.el.dataset.x)+Math.random()*4-2;
+        let y=parseFloat(o.el.dataset.y)+Math.random()*4-2;
+        o.el.dataset.x=x; o.el.dataset.y=y;
+        o.el.style.left=x+"px"; o.el.style.top=y+"px";
+
+        // interactions & blush
+        octos.forEach(o2=>{
+            if(o===o2) return;
+            let dx=parseFloat(o2.el.dataset.x)-x;
+            let dy=parseFloat(o2.el.dataset.y)-y;
+            let dist=Math.sqrt(dx*dx+dy*dy);
+            if(dist<80){o.el.classList.add("blush");} else{o.el.classList.remove("blush");}
+        });
+    });
+},50);
+
+// Automatic mood animation
+setInterval(()=>{
+    octos.forEach(o=>{
+        let idx=(parseInt(o.el.dataset.index)+1)%moods.length;
+        setMoodOctopus(o,idx);
+    });
+},12000);
+
+// History
+function saveHistory(mood){
+    let history=JSON.parse(localStorage.getItem("moodHistory"))||[];
+    history.push(mood);
+    localStorage.setItem("moodHistory",JSON.stringify(history));
+    renderHistory();
+}
+function renderHistory(){
+    let history=JSON.parse(localStorage.getItem("moodHistory"))||[];
+    const histDiv=document.getElementById("history"); histDiv.innerHTML="";
+    history.slice(-20).forEach(h=>{const s=document.createElement("span"); s.textContent=h.mouth; histDiv.appendChild(s);});
+}
+</script>
+
+</body>
+</html>
