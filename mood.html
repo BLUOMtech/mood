@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mood Board</title>
+<style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #0f172a;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    h1 {
+        margin-top: 20px;
+        font-weight: 500;
+        letter-spacing: 1px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+        padding: 30px;
+        max-width: 900px;
+        width: 100%;
+    }
+
+    .mood {
+        border-radius: 25px;
+        padding: 30px 10px;
+        text-align: center;
+        font-size: 26px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        user-select: none;
+    }
+
+    .mood span {
+        font-size: 60px;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .mood:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    #currentMood {
+        margin-top: 20px;
+        font-size: 120px;
+        height: 150px;
+    }
+
+    #history {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 800px;
+    }
+
+    #history span {
+        font-size: 28px;
+        opacity: 0.6;
+    }
+
+    button {
+        margin: 20px;
+        padding: 15px 25px;
+        font-size: 18px;
+        border-radius: 12px;
+        border: none;
+        background: #334155;
+        color: white;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #475569;
+    }
+
+    .fullscreen {
+        position: fixed;
+        inset: 0;
+        background: #0f172a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 200px;
+        z-index: 999;
+    }
+</style>
+</head>
+<body>
+
+<h1>How I Feel</h1>
+
+<div id="currentMood">🙂</div>
+
+<div class="grid" id="moodGrid"></div>
+
+<button onclick="showFullscreen()">Show Mood</button>
+<button onclick="clearHistory()">Clear History</button>
+
+<div id="history"></div>
+
+<script>
+const moods = [
+    {emoji: "😊", label: "Happy", color: "#22c55e"},
+    {emoji: "😔", label: "Sad", color: "#3b82f6"},
+    {emoji: "😡", label: "Angry", color: "#ef4444"},
+    {emoji: "😰", label: "Anxious", color: "#a855f7"},
+    {emoji: "😴", label: "Tired", color: "#f59e0b"},
+    {emoji: "😵‍💫", label: "Overwhelmed", color: "#ec4899"},
+    {emoji: "🤒", label: "Unwell", color: "#14b8a6"},
+    {emoji: "🤩", label: "Excited", color: "#eab308"},
+    {emoji: "😐", label: "Neutral", color: "#64748b"}
+];
+
+const grid = document.getElementById("moodGrid");
+const currentMood = document.getElementById("currentMood");
+const historyDiv = document.getElementById("history");
+
+moods.forEach(mood => {
+    const div = document.createElement("div");
+    div.className = "mood";
+    div.style.background = mood.color;
+    div.innerHTML = `<span>${mood.emoji}</span>${mood.label}`;
+    div.onclick = () => selectMood(mood.emoji);
+    grid.appendChild(div);
+});
+
+function selectMood(emoji) {
+    currentMood.textContent = emoji;
+    saveHistory(emoji);
+}
+
+function saveHistory(emoji) {
+    let history = JSON.parse(localStorage.getItem("moodHistory")) || [];
+    history.push(emoji);
+    localStorage.setItem("moodHistory", JSON.stringify(history));
+    renderHistory();
+}
+
+function renderHistory() {
+    let history = JSON.parse(localStorage.getItem("moodHistory")) || [];
+    historyDiv.innerHTML = "";
+    history.slice(-20).forEach(e => {
+        const span = document.createElement("span");
+        span.textContent = e;
+        historyDiv.appendChild(span);
+    });
+}
+
+function clearHistory() {
+    localStorage.removeItem("moodHistory");
+    renderHistory();
+}
+
+function showFullscreen() {
+    const fs = document.createElement("div");
+    fs.className = "fullscreen";
+    fs.textContent = currentMood.textContent;
+    fs.onclick = () => fs.remove();
+    document.body.appendChild(fs);
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>
